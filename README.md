@@ -17,6 +17,7 @@ This repository contains a complete ERC20 token ecosystem with:
 ```
 src/
 ├── MyToken.sol                   # Solidity ERC20 implementation
+├── TokenFactory.sol              # Factory contract for creating custom ERC20 tokens
 ├── BasicAMM.sol                  # Basic AMM implementation for token swapping
 ├── rust-token/                   # Rust/WASM ERC20 implementation
 │   ├── Cargo.toml                # Rust dependencies and build config
@@ -24,10 +25,12 @@ src/
 
 script/
 ├── DeployTokens.s.sol            # Deployment script for both tokens
+├── DeployTokenFactory.s.sol      # Deployment script for TokenFactory
 ├── DeployAMM.s.sol               # Deployment script for AMM contract
 └── BootstrapAMM.s.sol            # Bootstrapping script for liquidity and testing
 
-test/                             # Forge test suite
+test/
+└── TokenFactory.t.sol            # TokenFactory test suite
 ```
 
 ## Deployed Contracts
@@ -242,14 +245,78 @@ After bootstrapping, you can test the AMM functionality:
 3. **Remove Liquidity**: Test LP token burning and liquidity removal
 4. **Gas Benchmarking**: Monitor gas usage for different operations
 
-### Adding New Token Types
+### Using TokenFactory to Create Custom Tokens
 
-1. Create a new token implementation in the appropriate language
-2. Add deployment logic to `DeployTokens.s.sol`
-3. Update AMM deployment to include the new token
-4. Update tests to cover the new functionality
+The TokenFactory allows you to easily create new ERC20 tokens with custom parameters without writing any Solidity code.
 
-*Note: Token factory infrastructure for automated token creation is planned for future releases.*
+**Quick Start**: See [QUICKSTART.md](QUICKSTART.md) for quick reference commands.
+
+#### Deploy TokenFactory
+
+```bash
+export PRIVATE_KEY="your_private_key_here"
+
+gblend script script/DeployTokenFactory.s.sol \
+    --rpc-url https://rpc.testnet.fluent.xyz \
+    --private-key $PRIVATE_KEY \
+    --broadcast
+```
+
+#### Create a Token via Factory
+
+**Using Cast CLI:**
+```bash
+cast send $FACTORY_ADDRESS \
+    "createToken(string,string,uint256,address)" \
+    "MyToken" "MTK" 1000000 $OWNER_ADDRESS \
+    --rpc-url https://rpc.testnet.fluent.xyz \
+    --private-key $PRIVATE_KEY
+```
+
+**Using Solidity:**
+```solidity
+TokenFactory factory = TokenFactory(FACTORY_ADDRESS);
+
+address newToken = factory.createToken(
+    "MyToken",      // Token name
+    "MTK",          // Token symbol
+    1000000,        // Initial supply (scaled by 10^18)
+    msg.sender      // Token owner
+);
+```
+
+**Using JavaScript (ethers.js):**
+```javascript
+const factory = new ethers.Contract(factoryAddress, factoryABI, signer);
+
+const tx = await factory.createToken("MyToken", "MTK", 1000000, ownerAddress);
+const receipt = await tx.wait();
+
+// Get created token address from event
+const event = receipt.events?.find(e => e.event === 'TokenCreated');
+const tokenAddress = event.args.tokenAddress;
+```
+
+#### Query Factory
+
+```bash
+# Get total tokens created
+cast call $FACTORY_ADDRESS "getTokenCount()" --rpc-url https://rpc.testnet.fluent.xyz
+
+# Get token at specific index
+cast call $FACTORY_ADDRESS "getTokenAtIndex(uint256)" 0 --rpc-url https://rpc.testnet.fluent.xyz
+
+# Get all tokens created by an address
+cast call $FACTORY_ADDRESS "getTokensByCreator(address)" $CREATOR_ADDRESS --rpc-url https://rpc.testnet.fluent.xyz
+```
+
+#### Run Factory Tests
+
+```bash
+gblend test --match-contract TokenFactoryTest -vv
+```
+
+For more details and examples, see the [TokenFactory Quick Start Guide](QUICKSTART.md).
 
 ## License
 
