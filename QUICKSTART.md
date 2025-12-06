@@ -13,8 +13,6 @@ A **Solidity TokenFactory** that allows anyone to create custom ERC20 tokens by 
 | [src/TokenFactory.sol](src/TokenFactory.sol) | Main factory contract |
 | [test/TokenFactory.t.sol](test/TokenFactory.t.sol) | Comprehensive test suite (25+ tests) |
 | [script/DeployTokenFactory.s.sol](script/DeployTokenFactory.s.sol) | Deployment script |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Complete system architecture |
-| [PHASE1_AND_PHASE2_COMPLETE.md](PHASE1_AND_PHASE2_COMPLETE.md) | Detailed implementation report |
 
 ---
 
@@ -90,28 +88,5 @@ const tokens = await factory.getTokensByCreator(creatorAddress);
 
 ---
 
-## What's Next?
-
-**Phase 3**: Implement Rust Token Factory
-- Create configurable Rust ERC20 contract
-- Build Rust version of TokenFactory
-- Enable WASM token creation
-
-**Phase 4**: Build Unified Registry (Rust)
-- Single source of truth for all tokens
-- Track both Solidity and Rust tokens
-- Advanced query capabilities
-
-**Phase 5**: Integration & Deployment
-- Connect all components
-- Deploy to testnet
-- Full end-to-end testing
-
----
-
-## Need Help?
-
-- See [ARCHITECTURE.md](ARCHITECTURE.md) for system design
-- See [PHASE1_AND_PHASE2_COMPLETE.md](PHASE1_AND_PHASE2_COMPLETE.md) for detailed docs
 - Check test suite for usage examples
 - Review original [README.md](README.md) for project background
