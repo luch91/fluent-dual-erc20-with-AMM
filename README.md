@@ -17,20 +17,28 @@ This repository contains a complete ERC20 token ecosystem with:
 ```
 src/
 ├── MyToken.sol                   # Solidity ERC20 implementation
-├── TokenFactory.sol              # Factory contract for creating custom ERC20 tokens
+├── TokenFactory.sol              # Solidity factory for creating ERC20 tokens
 ├── BasicAMM.sol                  # Basic AMM implementation for token swapping
-├── rust-token/                   # Rust/WASM ERC20 implementation
-│   ├── Cargo.toml                # Rust dependencies and build config
-│   └── src/lib.rs                # Rust ERC20 contract logic
+├── rust-token/                   # Original Rust/WASM ERC20 implementation
+│   ├── Cargo.toml
+│   └── src/lib.rs
+├── configurable-rust-token/      # Parameterized Rust ERC20 token
+│   ├── Cargo.toml
+│   └── src/lib.rs
+├── rust-token-factory/           # Rust/WASM factory for creating tokens
+│   ├── Cargo.toml
+│   └── src/lib.rs
+└── RUST_FACTORY_README.md        # Rust factory documentation
 
 script/
 ├── DeployTokens.s.sol            # Deployment script for both tokens
-├── DeployTokenFactory.s.sol      # Deployment script for TokenFactory
+├── DeployTokenFactory.s.sol      # Deployment script for Solidity TokenFactory
+├── DeployRustFactory.s.sol       # Deployment script for Rust TokenFactory
 ├── DeployAMM.s.sol               # Deployment script for AMM contract
 └── BootstrapAMM.s.sol            # Bootstrapping script for liquidity and testing
 
 test/
-└── TokenFactory.t.sol            # TokenFactory test suite
+└── TokenFactory.t.sol            # Solidity TokenFactory test suite
 ```
 
 ## Deployed Contracts
@@ -317,6 +325,48 @@ gblend test --match-contract TokenFactoryTest -vv
 ```
 
 For more details and examples, see the [TokenFactory Quick Start Guide](QUICKSTART.md).
+
+### Using Rust Token Factory (Phase 3)
+
+The Rust Token Factory allows you to create Rust/WASM ERC20 tokens with custom parameters.
+
+**Documentation**: See [src/RUST_FACTORY_README.md](src/RUST_FACTORY_README.md) for detailed Rust factory documentation.
+
+#### Deploy Rust Factory
+
+```bash
+export PRIVATE_KEY="your_private_key_here"
+
+gblend script script/DeployRustFactory.s.sol \
+    --rpc-url https://rpc.testnet.fluent.xyz \
+    --private-key $PRIVATE_KEY \
+    --broadcast
+```
+
+#### Create a Rust Token
+
+```bash
+# After factory is deployed and bytecode is set
+cast send $RUST_FACTORY_ADDRESS \
+    "createToken(bytes,bytes,uint256,uint256,address)" \
+    $(cast --from-utf8 "MyRustToken") \
+    $(cast --from-utf8 "MRT") \
+    18 \
+    1000000000000000000000000 \
+    $OWNER_ADDRESS \
+    --rpc-url https://rpc.testnet.fluent.xyz \
+    --private-key $PRIVATE_KEY
+```
+
+#### Key Differences: Solidity vs Rust Factory
+
+| Feature | Solidity Factory | Rust Factory |
+|---------|-----------------|--------------|
+| Language | Solidity | Rust/WASM |
+| Deployment | `new` keyword | WASM bytecode |
+| Initialization | Constructor | Separate `initialize()` call |
+| Gas Cost | Higher | Lower (optimized) |
+| Flexibility | Standard | Custom WASM logic |
 
 ## License
 
