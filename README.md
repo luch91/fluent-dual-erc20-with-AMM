@@ -8,8 +8,11 @@ This repository contains a complete ERC20 token ecosystem with:
 
 - **Solidity ERC20 Token** (`MyToken.sol`) - Traditional Solidity implementation using OpenZeppelin contracts
 - **Rust/WASM ERC20 Token** (`rust-token/`) - Modern WebAssembly implementation using the FluentBase SDK
+- **TokenFactory** (`TokenFactory.sol`) - Solidity factory for creating custom ERC20 tokens
+- **RustTokenFactory** (`rust-token-factory/`) - Rust/WASM factory for creating custom tokens
+- **TokenRegistry** (`token-registry/`) - Unified registry tracking ALL tokens (Solidity + Rust)
 - **Basic AMM Contract** (`BasicAMM.sol`) - Constant product AMM implementation for token swapping and liquidity provision
-- **Deployment Scripts** - Automated deployment of both token types and AMM
+- **Deployment Scripts** - Automated deployment of complete token factory system
 - **Bootstrapping Script** (`BootstrapAMM.s.sol`) - Automated setup of liquidity pools and test accounts for benchmarking
 
 ## Project Structure
@@ -28,12 +31,17 @@ src/
 ├── rust-token-factory/           # Rust/WASM factory for creating tokens
 │   ├── Cargo.toml
 │   └── src/lib.rs
-└── RUST_FACTORY_README.md        # Rust factory documentation
+├── token-registry/               # Unified registry for all tokens (Solidity + Rust)
+│   ├── Cargo.toml
+│   └── src/lib.rs
+├── RUST_FACTORY_README.md        # Rust factory documentation
+└── TOKEN_REGISTRY_README.md      # Token registry documentation
 
 script/
 ├── DeployTokens.s.sol            # Deployment script for both tokens
 ├── DeployTokenFactory.s.sol      # Deployment script for Solidity TokenFactory
 ├── DeployRustFactory.s.sol       # Deployment script for Rust TokenFactory
+├── DeployCompleteSystem.s.sol    # Deploy complete system (Registry + Factories)
 ├── DeployAMM.s.sol               # Deployment script for AMM contract
 └── BootstrapAMM.s.sol            # Bootstrapping script for liquidity and testing
 
@@ -367,6 +375,62 @@ cast send $RUST_FACTORY_ADDRESS \
 | Initialization | Constructor | Separate `initialize()` call |
 | Gas Cost | Higher | Lower (optimized) |
 | Flexibility | Standard | Custom WASM logic |
+
+### Using TokenRegistry - Unified Token Tracking (Phase 4)
+
+The **TokenRegistry** is a Rust/WASM contract that serves as a **single source of truth** for ALL tokens created by both factories. This completes the **BONUS requirement** of tracking both Solidity and Rust tokens in one place.
+
+**Documentation**: See [src/TOKEN_REGISTRY_README.md](src/TOKEN_REGISTRY_README.md) for comprehensive registry documentation.
+
+#### Deploy Complete System
+
+```bash
+export PRIVATE_KEY="your_private_key_here"
+
+# Deploy everything: Registry + Both Factories + Test tokens
+gblend script script/DeployCompleteSystem.s.sol \
+    --rpc-url https://rpc.testnet.fluent.xyz \
+    --private-key $PRIVATE_KEY \
+    --broadcast
+```
+
+This script automatically:
+1. Deploys TokenRegistry (Rust/WASM)
+2. Deploys Solidity TokenFactory with registry
+3. Deploys ConfigurableERC20 template
+4. Deploys RustTokenFactory with registry
+5. Authorizes both factories in the registry
+6. Creates test tokens to verify functionality
+
+#### Query Registry
+
+```bash
+# Get total tokens (Solidity + Rust)
+cast call $REGISTRY_ADDRESS "getTokenCount()" --rpc-url https://rpc.testnet.fluent.xyz
+
+# Get token by global index
+cast call $REGISTRY_ADDRESS "getTokenByIndex(uint256)" 0 --rpc-url https://rpc.testnet.fluent.xyz
+
+# Get tokens created by an address
+cast call $REGISTRY_ADDRESS "getTokensCountByCreator(address)" $CREATOR_ADDRESS --rpc-url https://rpc.testnet.fluent.xyz
+
+# Get Solidity tokens count (type 0)
+cast call $REGISTRY_ADDRESS "getTokensCountByType(uint256)" 0 --rpc-url https://rpc.testnet.fluent.xyz
+
+# Get Rust tokens count (type 1)
+cast call $REGISTRY_ADDRESS "getTokensCountByType(uint256)" 1 --rpc-url https://rpc.testnet.fluent.xyz
+```
+
+#### Key Benefits
+
+| Without Registry | With Registry |
+|------------------|---------------|
+| Query 2 factories separately | Query 1 registry |
+| Manual data merging | Automatic unified view |
+| No type distinction | Clear Solidity vs Rust labels |
+| Complex frontend logic | Simple queries |
+
+**The TokenRegistry makes both Solidity and Rust tokens work together seamlessly!** 🎉
 
 ## License
 
