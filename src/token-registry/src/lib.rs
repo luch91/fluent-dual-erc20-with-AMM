@@ -3,6 +3,7 @@
 extern crate alloc;
 extern crate fluentbase_sdk;
 
+use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloy_sol_types::{sol, SolEvent};
 use fluentbase_sdk::{

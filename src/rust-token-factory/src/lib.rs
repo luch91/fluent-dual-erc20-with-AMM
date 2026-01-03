@@ -3,6 +3,7 @@
 extern crate alloc;
 extern crate fluentbase_sdk;
 
+use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloy_sol_types::{sol, SolEvent};
 use fluentbase_sdk::{
@@ -25,6 +26,7 @@ pub trait RustTokenFactoryAPI {
     fn get_token_at_index(&self, index: U256) -> Address;
     fn is_token_from_factory(&self, token: Address) -> U256;
     fn get_registry(&self) -> Address;
+    fn set_registry(&mut self, registry: Address) -> U256;
     fn set_token_bytecode(&mut self, bytecode: Bytes) -> U256;
 }
 
@@ -115,15 +117,15 @@ impl<SDK: SharedAPI> RustTokenFactoryAPI for RustTokenFactory<SDK> {
 
         // Track the token
         let current_count = TokenCount::get(&self.sdk);
-        TokenAtIndex::set(&self.sdk, current_count, token_address);
-        IsFromFactory::set(&self.sdk, token_address, U256::from(1));
-        TokenCount::set(&self.sdk, current_count + U256::from(1));
+        TokenAtIndex::set(&mut self.sdk, current_count, token_address);
+        IsFromFactory::set(&mut self.sdk, token_address, U256::from(1));
+        TokenCount::set(&mut self.sdk, current_count + U256::from(1));
 
         // Track by creator
         let creator = self.sdk.context().contract_caller();
         let creator_count = CreatorTokenCount::get(&self.sdk, creator);
-        CreatorTokens::set(&self.sdk, creator, creator_count, token_address);
-        CreatorTokenCount::set(&self.sdk, creator, creator_count + U256::from(1));
+        CreatorTokens::set(&mut self.sdk, creator, creator_count, token_address);
+        CreatorTokenCount::set(&mut self.sdk, creator, creator_count + U256::from(1));
 
         // Register with registry if available
         let registry = Registry::get(&self.sdk);
@@ -168,6 +170,11 @@ impl<SDK: SharedAPI> RustTokenFactoryAPI for RustTokenFactory<SDK> {
 
     fn get_registry(&self) -> Address {
         Registry::get(&self.sdk)
+    }
+
+    fn set_registry(&mut self, registry: Address) -> U256 {
+        Registry::set(&mut self.sdk, registry);
+        U256::from(1)
     }
 
     fn set_token_bytecode(&mut self, bytecode: Bytes) -> U256 {
@@ -268,9 +275,10 @@ impl<SDK: SharedAPI> RustTokenFactory<SDK> {
 
 /// Deploy function - sets up the factory
 impl<SDK: SharedAPI> RustTokenFactory<SDK> {
-    pub fn deploy(&mut self, registry: Address) {
+    pub fn deploy(&mut self) {
         // Initialize factory state
-        Registry::set(&mut self.sdk, registry);
+        // Registry will be set separately or passed as zero for now
+        Registry::set(&mut self.sdk, Address::ZERO);
         TokenCount::set(&mut self.sdk, U256::from(0));
 
         // TokenBytecode will be set separately via set_token_bytecode

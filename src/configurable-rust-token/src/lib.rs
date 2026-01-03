@@ -3,6 +3,7 @@
 extern crate alloc;
 extern crate fluentbase_sdk;
 
+use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloy_sol_types::{sol, SolEvent};
 use fluentbase_sdk::{
@@ -11,8 +12,9 @@ use fluentbase_sdk::{
     Address, Bytes, ContextReader, SharedAPI, B256, U256,
 };
 
-/// ERC20 standard interface
-pub trait ERC20API {
+/// Combined ERC20 and Configurable Token API
+pub trait ConfigurableERC20API {
+    // ERC20 standard functions
     fn symbol(&self) -> Bytes;
     fn name(&self) -> Bytes;
     fn decimals(&self) -> U256;
@@ -22,10 +24,8 @@ pub trait ERC20API {
     fn allowance(&self, owner: Address, spender: Address) -> U256;
     fn approve(&mut self, spender: Address, value: U256) -> U256;
     fn transfer_from(&mut self, from: Address, to: Address, value: U256) -> U256;
-}
 
-/// Initialization interface for configurable token
-pub trait ConfigurableTokenAPI {
+    // Initialization functions
     fn initialize(
         &mut self,
         name: Bytes,
@@ -41,7 +41,7 @@ pub trait ConfigurableTokenAPI {
 sol! {
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
-    event Initialized(address indexed owner, string name, string symbol, uint256 decimals, uint256 totalSupply);
+    event TokenInitialized(address indexed owner, string name, string symbol, uint256 decimals, uint256 totalSupply);
 }
 
 /// Helper function to emit events
@@ -55,7 +55,6 @@ fn emit_event<SDK: SharedAPI, T: SolEvent>(sdk: &mut SDK, event: T) {
     sdk.emit_log(&topics, &data);
 }
 
-/// Storage layout for the configurable ERC20 token
 solidity_storage! {
     // ERC20 core storage
     mapping(Address => U256) Balance;
@@ -121,9 +120,10 @@ struct ConfigurableERC20<SDK> {
     sdk: SDK,
 }
 
-/// ERC20 standard implementation
+/// Combined implementation of all contract functions
 #[router(mode = "solidity")]
-impl<SDK: SharedAPI> ERC20API for ConfigurableERC20<SDK> {
+impl<SDK: SharedAPI> ConfigurableERC20API for ConfigurableERC20<SDK> {
+    // ERC20 standard functions
     fn symbol(&self) -> Bytes {
         Symbol::get(&self.sdk)
     }
@@ -188,11 +188,8 @@ impl<SDK: SharedAPI> ERC20API for ConfigurableERC20<SDK> {
         emit_event(&mut self.sdk, Transfer { from, to, value });
         U256::from(1)
     }
-}
 
-/// Configurable token initialization implementation
-#[router(mode = "solidity")]
-impl<SDK: SharedAPI> ConfigurableTokenAPI for ConfigurableERC20<SDK> {
+    // Initialization functions
     fn initialize(
         &mut self,
         name: Bytes,
@@ -246,7 +243,7 @@ impl<SDK: SharedAPI> ConfigurableTokenAPI for ConfigurableERC20<SDK> {
 
         emit_event(
             &mut self.sdk,
-            Initialized {
+            TokenInitialized {
                 owner,
                 name: alloc::string::String::from_utf8_lossy(&name).to_string(),
                 symbol: alloc::string::String::from_utf8_lossy(&symbol).to_string(),
